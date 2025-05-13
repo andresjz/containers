@@ -1,0 +1,62 @@
+FROM ubuntu:22.04
+
+# Avoid prompts from apt
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies for pyenv and nvm
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    sudo \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    wget \
+    llvm \
+    libncurses5-dev \
+    libncursesw5-dev \
+    xz-utils \
+    tk-dev \
+    libffi-dev \
+    liblzma-dev \
+    python3-openssl \
+    ca-certificates \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install pyenv
+ENV PYENV_ROOT="/root/.pyenv"
+ENV PATH="$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH"
+RUN curl https://pyenv.run | bash
+
+# Install nvm
+ENV NVM_DIR="/root/.nvm"
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+# Set up a non-root user (optional but recommended)
+ARG USERNAME=vscode
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && mkdir -p /etc/sudoers.d \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
+
+# Switch to non-root user
+USER $USERNAME
+
+# Set up user's bashrc for pyenv and nvm
+RUN echo 'export PYENV_ROOT="$HOME/.pyenv"' >> /home/$USERNAME/.bashrc \
+    && echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> /home/$USERNAME/.bashrc \
+    && echo 'eval "$(pyenv init -)"' >> /home/$USERNAME/.bashrc \
+    && echo 'export NVM_DIR="$HOME/.nvm"' >> /home/$USERNAME/.bashrc \
+    && echo '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"  # This loads nvm' >> /home/$USERNAME/.bashrc \
+    && echo '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion' >> /home/$USERNAME/.bashrc
+
+# Expose PYENV_ROOT and NVM_DIR to the environment for login shells
+ENV PYENV_ROOT="/home/$USERNAME/.pyenv"
+ENV NVM_DIR="/home/$USERNAME/.nvm"
