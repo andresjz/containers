@@ -24,7 +24,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     liblzma-dev \
     python3-openssl \
     ca-certificates \
+    unzip \
+    postgresql-client \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install AWS CLI v2
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+    && unzip awscliv2.zip \
+    && sudo ./aws/install \
+    && rm -rf aws awscliv2.zip
 
 # Set up a non-root user (optional but recommended)
 ARG USERNAME=vscode
