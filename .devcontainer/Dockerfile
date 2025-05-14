@@ -26,15 +26,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install pyenv
-ENV PYENV_ROOT="/root/.pyenv"
-ENV PATH="$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH"
-RUN curl https://pyenv.run | bash
-
-# Install nvm
-ENV NVM_DIR="/root/.nvm"
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-
 # Set up a non-root user (optional but recommended)
 ARG USERNAME=vscode
 ARG USER_UID=1000
@@ -49,6 +40,15 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # Switch to non-root user
 USER $USERNAME
 
+# Install pyenv for the non-root user
+ENV PYENV_ROOT="/home/$USERNAME/.pyenv"
+ENV PATH="$PYENV_ROOT/bin:$PATH"
+RUN curl https://pyenv.run | bash
+
+# Install nvm for the non-root user
+ENV NVM_DIR="/home/$USERNAME/.nvm"
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
 # Set up user's bashrc for pyenv and nvm
 RUN echo 'export PYENV_ROOT="$HOME/.pyenv"' >> /home/$USERNAME/.bashrc \
     && echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> /home/$USERNAME/.bashrc \
@@ -57,6 +57,11 @@ RUN echo 'export PYENV_ROOT="$HOME/.pyenv"' >> /home/$USERNAME/.bashrc \
     && echo '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"  # This loads nvm' >> /home/$USERNAME/.bashrc \
     && echo '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion' >> /home/$USERNAME/.bashrc
 
-# Expose PYENV_ROOT and NVM_DIR to the environment for login shells
+# Add environment variables to make sure they persist
 ENV PYENV_ROOT="/home/$USERNAME/.pyenv"
+ENV PATH="$PYENV_ROOT/bin:$PATH"
 ENV NVM_DIR="/home/$USERNAME/.nvm"
+
+# Fix permissions for the user's home directory and tools
+RUN sudo chown -R $USERNAME:$USERNAME /home/$USERNAME/.pyenv \
+    && sudo chown -R $USERNAME:$USERNAME /home/$USERNAME/.nvm
