@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     unzip \
     postgresql-client \
+    zsh \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install AWS CLI v2
@@ -73,3 +74,17 @@ ENV NVM_DIR="/home/$USERNAME/.nvm"
 # Fix permissions for the user's home directory and tools
 RUN sudo chown -R $USERNAME:$USERNAME /home/$USERNAME/.pyenv \
     && sudo chown -R $USERNAME:$USERNAME /home/$USERNAME/.nvm
+
+# Install Oh My Zsh
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+
+# Set Zsh as default shell
+RUN sudo chsh -s $(which zsh) $USERNAME
+
+# Configure Zsh with pyenv and nvm
+RUN echo 'export PYENV_ROOT="$HOME/.pyenv"' >> /home/$USERNAME/.zshrc \
+    && echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> /home/$USERNAME/.zshrc \
+    && echo 'eval "$(pyenv init -)"' >> /home/$USERNAME/.zshrc \
+    && echo 'export NVM_DIR="$HOME/.nvm"' >> /home/$USERNAME/.zshrc \
+    && echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm' >> /home/$USERNAME/.zshrc \
+    && echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion' >> /home/$USERNAME/.zshrc
